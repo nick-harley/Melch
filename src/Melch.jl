@@ -10,7 +10,16 @@ export id
 # CONSTITUENTS #
 ################
 
-mutable struct Event
+abstract type Id <: Chakra.Id end
+
+abstract type Constituent <: Chakra.Constituent end
+
+abstract type Hierarchy <: Chakra.Hierarchy end
+
+
+
+
+mutable struct Event <: Constituent
 
     # TYPE OF MUSICAL EVENTS
     
@@ -38,7 +47,7 @@ end
 Event() = Event(none,none,none,none,none,none,none,none,none,
                 none,none,none,none,none,none,none,none,none)
 
-struct Melody
+struct Melody <: Constituent
 
     # TYPE OF MUSICAL MELODIES
     
@@ -48,7 +57,7 @@ end
 
 Melody(desc) = Melody(Event[],desc)
 
-struct Dataset
+struct Dataset <: Constituent
 
     # TYPE OF MELODY DATASETS
     
@@ -62,7 +71,7 @@ Dataset(desc) = Dataset(Melody[],desc)
 # HIERARCHIES #
 ###############
 
-struct Corpus
+struct Corpus <: Hierarchy
 
     # TYPE OF MELODY CORPORA
     
@@ -77,7 +86,7 @@ Corpus(desc) = Corpus(Dataset[],desc)
 # IDENTIFIERS #
 ###############
 
-abstract type Id end
+abstract type Id <: Chakra.Id end
 
 struct DatasetId <: Id
     dataset::Int
@@ -170,7 +179,7 @@ function parse_data(path)
     # PARSE ALL THE LISP FILES TO A CORPUS
     
     filenames = ["$x.lisp" for x in 0:25]
-    filepaths = [joinpath(path,"data/lisp",fn) for fn in filenames];
+    filepaths = [joinpath(path,fn) for fn in filenames];
     datasets = [parse_file(fp) for fp in filepaths];
     corpus = Corpus(datasets,"Melch")
     
@@ -249,24 +258,43 @@ function LOAD(path)
     return parse_data(path)
 end
 
+__attribtues__(::Val{a}) where a = error("Attribtue $a is not defined in Melch.")
+__attributes__(a::Symbol) = __attributes__(Val{a}())
+
+struct Attribute{N,T} <: Chakra.Attribute{N,T}
+    Attribute(a::Symbol) = new{a,__attribtues__(a)}()
+end
+
+__attributes__(::Val{:ONSET}) = Int
+__attributes__(::Val{:DELTAST}) = Int
+__attributes__(::Val{:BIOI}) = Int
+__attributes__(::Val{:DUR}) = Int
+__attributes__(::Val{:CPITCH}) = Int
+__attributes__(::Val{:MPITCH}) = Int
+__attributes__(::Val{:ACCIDENTAL}) = Int
+__attributes__(::Val{:KEYSIG}) = Int
+__attributes__(::Val{:MODE}) = Int
+__attributes__(::Val{:BARLENGTH}) = Int
+__attributes__(::Val{:PULSES}) = Int
+__attributes__(::Val{:PHRASE}) = Int
+__attributes__(::Val{:VOICE}) = Int
+__attributes__(::Val{:ORNAMENT}) = Int
+__attributes__(::Val{:COMMA}) = Int
+__attributes__(::Val{:VERTINT12}) = Int
+__attributes__(::Val{:ARTICULATION}) = Int
+__attributes__(::Val{:DYN}) = Int
 
 ####################
 # CHAKRA INTERFACE #
 ####################
 
-EVENTATTS = fieldnames(Event)
-
-for EA in EVENTATTS
-    Chakra.@Attribute(EA,Int)
-end
-
 Chakra.pts(d::Dataset) = d.melodies
 Chakra.pts(m::Melody) = m.events
 Chakra.pts(e::Event) = Id[]
 
-Chakra.geta(::Att{a,T},d::Dataset) where {a,T} = none
-Chakra.geta(::Att{a,T},m::Melody) where {a,T} = none
-Chakra.geta(::Att{a,T},e::Event) where {a,T} = a in EVENTATTS ? Base.getproperty(e,a) : none
+Chakra.geta(::Attribute{a,T},d::Dataset) where {a,T} = none
+Chakra.geta(::Attribute{a,T},m::Melody) where {a,T} = none
+Chakra.geta(::Attribute{a,T},e::Event) where {a,T} = Base.getproperty(e,a)
 
 Chakra.fnd(x::DatasetId,c::Corpus) = Base.get(c.datasets,x.dataset,none)
 Chakra.fnd(x::MelodyId,c::Corpus) = obind(fnd(id(x.dataset),c), d -> Base.get(d.melodies,x.melody,none))
