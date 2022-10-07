@@ -10,76 +10,11 @@ export id
 # CONSTITUENTS #
 ################
 
-abstract type Id end
+abstract type Id <: Chakra.Id end
 
-abstract type Constituent end
+abstract type Constituent <: Chakra.Constituent end
 
-abstract type Hierarchy end
-
-
-
-
-mutable struct Event <: Constituent
-
-    # TYPE OF MUSICAL EVENTS
-    
-    ONSET::Option{Int}
-    DELTAST::Option{Int}
-    BIOI::Option{Int}
-    DUR::Option{Int}
-    CPITCH::Option{Int}
-    MPITCH::Option{Int}
-    ACCIDENTAL::Option{Int}
-    KEYSIG::Option{Int}
-    MODE::Option{Int}
-    BARLENGTH::Option{Int}
-    PULSES::Option{Int}
-    PHRASE::Option{Int}
-    VOICE::Option{Int}
-    ORNAMENT::Option{Int}
-    COMMA::Option{Int}
-    VERTINT12::Option{Int}
-    ARTICULATION::Option{Int}
-    DYN::Option{Int}
-
-end
-
-Event() = Event(none,none,none,none,none,none,none,none,none,
-                none,none,none,none,none,none,none,none,none)
-
-struct Melody <: Constituent
-
-    # TYPE OF MUSICAL MELODIES
-    
-    events::Vector{Event}
-    description::String
-end
-
-Melody(desc) = Melody(Event[],desc)
-
-struct Dataset <: Constituent
-
-    # TYPE OF MELODY DATASETS
-    
-    melodies::Vector{Melody}
-    description::String
-end
-
-Dataset(desc) = Dataset(Melody[],desc)
-
-###############
-# HIERARCHIES #
-###############
-
-struct Corpus <: Hierarchy
-
-    # TYPE OF MELODY CORPORA
-    
-    datasets::Vector{Dataset}
-    description::String
-end
-
-Corpus(desc) = Corpus(Dataset[],desc)
+abstract type Hierarchy <: Chakra.Hierarchy end
 
 
 ###############
@@ -106,158 +41,83 @@ id(d::Int,m::Int) = MelodyId(d,m)
 id(d::Int,m::Int,e::Int) = EventId(d,m,e)
 id(d::DatasetId,i::Int) = id(d.dataset,i)
 id(m::MelodyId,i::Int) = id(m.dataset,m.melody,i)
+id(d::DatasetId,m::Int,i::Int) = id(d.dataset,m,i)
 
 idtostring(e::EventId) = string(e.dataset,"/",e.melody,"/",e.event)
 idtostring(e::MelodyId) = string(e.dataset,"/",e.melody)
 idtostring(e::DatasetId) = string(e.dataset)
 
-#############
-# UTILITIES #
-#############
 
-function parse_file(filepath)
 
-    # PARSE LISP FILE TO DATASET
-    
-    f = open(filepath)
-    s = read(f,String)
-    
-    dataset_description = s[3:findfirst(".",s)[1]]
-    
-    dataset = Dataset(dataset_description)
-    
-    s = replace(s,"\n " => "","  " => "", ") ("=>")(")[1:end-1]
-    
-    melody_strings = String[]
-    melody_descriptions = String[]
 
-    # get melody strings
-    for (i,m) in enumerate(split(s,"(\"")[3:end])
-        
-        b = findfirst("((",m)[2]+1
-        e = findlast("))",m)[1]-2
-        push!(melody_strings,m[b:e])
-        
-        melody_description = string(m[1:findfirst("\"",m)[1]-1])                
-        push!(melody_descriptions,melody_description)
-    end
-        
-    for (m,mstring) in enumerate(melody_strings)
-        
-        melody = Melody(melody_descriptions[m])
 
-        event_strings = split(mstring,")) ((")
-        
-        for (e,event_string) in enumerate(event_strings)
+mutable struct Event <: Constituent
 
-            event = Event()
-            
-            att_strings = split(event_string,")(")
-            
-            for astring in att_strings
-                key_val = split(astring," ")
-                k = Symbol(key_val[1][2:end])
-                v = (v = key_val[2]; v == "NIL" ? none : parse(Int,v))
-                setproperty!(event,k,v)
-            end
+    # TYPE OF MUSICAL EVENTS
 
-            push!(melody.events,event)
-            
-        end
-
-        push!(dataset.melodies,melody)
-        
-    end
-
-    return dataset
+    id::EventId
+    ONSET::Option{Int}
+    DELTAST::Option{Int}
+    BIOI::Option{Int}
+    DUR::Option{Int}
+    CPITCH::Option{Int}
+    MPITCH::Option{Int}
+    ACCIDENTAL::Option{Int}
+    KEYSIG::Option{Int}
+    MODE::Option{Int}
+    BARLENGTH::Option{Int}
+    PULSES::Option{Int}
+    PHRASE::Option{Int}
+    VOICE::Option{Int}
+    ORNAMENT::Option{Int}
+    COMMA::Option{Int}
+    VERTINT12::Option{Int}
+    ARTICULATION::Option{Int}
+    DYN::Option{Int}
 
 end
 
-function parse_data(path)
+Event(x) = Event(x,none,none,none,none,none,none,none,none,none,
+                 none,none,none,none,none,none,none,none,none)
 
-    # PARSE ALL THE LISP FILES TO A CORPUS
+struct Melody <: Constituent
 
-    # NOTE: 21.lisp doesn't parse. is there a missing bracket somewhere? also han0953 has not events. 
-    
-    filenames = ["$x.lisp" for x in [0:20...,22:25...]]
-    filepaths = [joinpath(path,fn) for fn in filenames];
-    datasets = [parse_file(fp) for fp in filepaths];
-    corpus = Corpus(datasets,"Melch")
-    
-    return corpus
+    # TYPE OF MUSICAL MELODIES
+
+    id::MelodyId
+    events::Vector{Event}
+    description::String
 end
 
-function save_dataset(d::Dataset,fp)
+Melody(x,desc) = Melody(x,Event[],desc)
 
-    # SAVE DATASET TO A JLD5 FILE
-    
-    f = jldopen(fp,"w")
+struct Dataset <: Constituent
 
-    f["dataset"] = d
-    
-    close(f)
+    # TYPE OF MELODY DATASETS
+
+    id::DatasetId
+    melodies::Vector{Melody}
+    description::String
 end
 
-function save_corpus(c::Corpus,fp)
+Dataset(x,desc) = Dataset(x,Melody[],desc)
 
-    # SAVE CORPUS TO A JLD5 FILE
-    
-    f = jldopen(fp,"w")
+###############
+# HIERARCHIES #
+###############
 
-    f["corpus"] = c
+struct Corpus <: Hierarchy
+
+    # TYPE OF MELODY CORPORA
     
-    close(f)
+    datasets::Vector{Dataset}
+    description::String
 end
 
-function load_dataset(fp)
+Corpus(desc) = Corpus(Dataset[],desc)
 
-    # LOAD DATASET FROM JLD5 FILE
-    
-    load(fp)["dataset"]
-end
 
-function load_corpus(fp)
 
-    # LOAD CORPUS FROM JLD5 FILE
-    
-    load(fp)["corpus"]
-end
-
-function event_to_df(e::Event)
-
-    # EVENT TO DATAFRAME
-    
-    return DataFrame(OrderedDict(fieldnames(Event) .=> getfield.(Ref(e), fieldnames(Event))))
-end
-
-function melody_to_df(m::Melody)
-
-    # MELODY TO DATAFRAME
-    
-    return vcat(event_to_df.(m.events)...)
-end
-
-function df_to_melody(df::DataFrame,desc)
-
-    # DATAFRAME TO MELODY
-    
-    melody = Melody(desc)
-    for i in 1:size(df)[1]
-        event = Event()
-        for p in propertynames(df)
-            setproperty!(event,p,getproperty(df,p)[i])
-        end
-        push!(melody.events,event)
-    end
-    return melody
-end
-
-function LOAD(path)
-
-    # LOAD MELCH INTO MEMORY
-    
-    return parse_data(path)
-end
 
 __attributes__(::Val{a}) where a = error("Attribtue $a is not defined in Melch.")
 __attributes__(a::Symbol) = __attributes__(Val{a}())
@@ -285,12 +145,18 @@ __attributes__(::Val{:VERTINT12}) = Int
 __attributes__(::Val{:ARTICULATION}) = Int
 __attributes__(::Val{:DYN}) = Int
 
+Chakra.__attributes__(::Val{Symbol("Melch.CPITCH")}) = Attribute(:CPITCH)
+Chakra.__attributes__(::Val{Symbol("Melch.DUR")}) = Attribute(:DUR)
+
+CPITCH = Attribute(:CPITCH)
+DUR = Attribute(:DUR)
+
 ####################
 # CHAKRA INTERFACE #
 ####################
 
-Chakra.pts(d::Dataset) = d.melodies
-Chakra.pts(m::Melody) = m.events
+Chakra.pts(d::Dataset) = [id(d.id,i) for i in 1:length(d.melodies)]
+Chakra.pts(m::Melody) = [id(m.id,i) for i in 1:length(m.events)]
 Chakra.pts(e::Event) = Id[]
 
 Chakra.geta(::Attribute{a,T},d::Dataset) where {a,T} = none
@@ -299,9 +165,109 @@ Chakra.geta(::Attribute{a,T},e::Event) where {a,T} = Base.getproperty(e,a)
 
 Chakra.geta(a::Symbol,c::Constituent) = Chakra.geta(Attribute(a),c)
 
-Chakra.fnd(x::DatasetId,c::Corpus) = Base.get(c.datasets,x.dataset,none)
+Chakra.fnd(x::DatasetId,c::Corpus) = Base.get(c.datasets,x.dataset+1,none)
 Chakra.fnd(x::MelodyId,c::Corpus) = obind(fnd(id(x.dataset),c), d -> Base.get(d.melodies,x.melody,none))
 Chakra.fnd(x::EventId,c::Corpus) = obind(fnd(id(x.dataset,x.melody),c), m -> Base.get(m.events,x.event,none))
 
+
+
+
+
+
+# LOADING
+
+function parse_file(x,filepath)
+
+    # PARSE LISP FILE TO DATASET
+    
+    f = open(filepath)
+    s = read(f,String)
+    
+    dataset_description = s[3:findfirst(".",s)[1]]
+    
+    dataset = Dataset(x,dataset_description)
+    
+    s = replace(s,"\n " => "","  " => "", ") ("=>")(")[1:end-1]
+    
+    melody_strings = String[]
+    melody_descriptions = String[]
+
+    # get melody strings and descriptions
+    for (i,m) in enumerate(split(s,"(\"")[3:end])
+        
+        b = findfirst("((",m)[2]+1
+        e = findlast("))",m)[1]-2
+        push!(melody_strings,m[b:e])
+        
+        melody_description = string(m[1:findfirst("\"",m)[1]-1])                
+        push!(melody_descriptions,melody_description)
+    end
+
+    # get event strings
+    for (m,mstring) in enumerate(melody_strings)
+        
+        melody = Melody(id(x,m),melody_descriptions[m])
+
+        event_strings = split(mstring,")) ((")
+        
+        for (e,event_string) in enumerate(event_strings)
+
+            event = Event(id(x,m,e))
+            
+            att_strings = split(event_string,")(")
+            
+            for astring in att_strings
+                key_val = split(astring," ")
+                k = Symbol(key_val[1][2:end])
+                v = (v = key_val[2]; v == "NIL" ? none : parse(Int,v))
+                setproperty!(event,k,v)
+            end
+
+            push!(melody.events,event)
+            
+        end
+
+        push!(dataset.melodies,melody)
+        
+    end
+
+    return dataset
+
+end
+
+
+__data__ = Corpus("Melch")
+
+function __INIT__(path)
+
+    # PARSE ALL THE LISP FILES TO A CORPUS
+
+    # NOTE: 21.lisp doesn't parse. is there a missing bracket somewhere? also han0953 has not events. 
+
+    for i in [0:20...,22:25...]
+        filename = "$i.lisp"
+        filepath = joinpath(path,filename)
+        dataset = parse_file(id(i),filepath)
+        push!(__data__.datasets,dataset)
+    end
+
+end
+
+
+# DISPLAY USING DATAFRAMES
+
+function event_to_df(e::Event)
+
+    # EVENT TO DATAFRAME
+    
+    return DataFrame(OrderedDict(fieldnames(Event) .=> getfield.(Ref(e), fieldnames(Event))))
+end
+
+function melody_to_df(m::Melody)
+
+    # MELODY TO DATAFRAME
+    
+    return vcat(event_to_df.(m.events)...)
+end
 
 end
