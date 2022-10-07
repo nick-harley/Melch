@@ -10,11 +10,11 @@ export id
 # CONSTITUENTS #
 ################
 
-abstract type Id <: Chakra.Id end
+abstract type Id end
 
-abstract type Constituent <: Chakra.Constituent end
+abstract type Constituent end
 
-abstract type Hierarchy <: Chakra.Hierarchy end
+abstract type Hierarchy end
 
 
 
@@ -86,8 +86,6 @@ Corpus(desc) = Corpus(Dataset[],desc)
 # IDENTIFIERS #
 ###############
 
-abstract type Id <: Chakra.Id end
-
 struct DatasetId <: Id
     dataset::Int
 end
@@ -124,39 +122,40 @@ function parse_file(filepath)
     f = open(filepath)
     s = read(f,String)
     
-    ddesc = s[3:findfirst(".",s)[1]]
-
-    dataset = Dataset(ddesc)
-
+    dataset_description = s[3:findfirst(".",s)[1]]
+    
+    dataset = Dataset(dataset_description)
+    
     s = replace(s,"\n " => "","  " => "", ") ("=>")(")[1:end-1]
     
-    ms = String[]
-    mdescs = String[]
-    
+    melody_strings = String[]
+    melody_descriptions = String[]
+
+    # get melody strings
     for (i,m) in enumerate(split(s,"(\"")[3:end])
         
         b = findfirst("((",m)[2]+1
         e = findlast("))",m)[1]-2
-        push!(ms,m[b:e])
+        push!(melody_strings,m[b:e])
         
-        mdesc = string(m[1:findfirst("\"",m)[1]-1])                
-        push!(mdescs,mdesc)
+        melody_description = string(m[1:findfirst("\"",m)[1]-1])                
+        push!(melody_descriptions,melody_description)
     end
         
-    for (m,ms) in enumerate(ms)
+    for (m,mstring) in enumerate(melody_strings)
         
-        melody = Melody(mdescs[m])
+        melody = Melody(melody_descriptions[m])
 
-        event_strings = split(ms,")) ((")
+        event_strings = split(mstring,")) ((")
         
-        for (e,es) in enumerate(event_strings)
+        for (e,event_string) in enumerate(event_strings)
 
             event = Event()
             
-            as = split(es,")(")
-                        
-            for as in as
-                key_val = split(as," ")
+            att_strings = split(event_string,")(")
+            
+            for astring in att_strings
+                key_val = split(astring," ")
                 k = Symbol(key_val[1][2:end])
                 v = (v = key_val[2]; v == "NIL" ? none : parse(Int,v))
                 setproperty!(event,k,v)
@@ -177,8 +176,10 @@ end
 function parse_data(path)
 
     # PARSE ALL THE LISP FILES TO A CORPUS
+
+    # NOTE: 21.lisp doesn't parse. is there a missing bracket somewhere? also han0953 has not events. 
     
-    filenames = ["$x.lisp" for x in 0:25]
+    filenames = ["$x.lisp" for x in [0:20...,22:25...]]
     filepaths = [joinpath(path,fn) for fn in filenames];
     datasets = [parse_file(fp) for fp in filepaths];
     corpus = Corpus(datasets,"Melch")
@@ -258,11 +259,11 @@ function LOAD(path)
     return parse_data(path)
 end
 
-__attribtues__(::Val{a}) where a = error("Attribtue $a is not defined in Melch.")
+__attributes__(::Val{a}) where a = error("Attribtue $a is not defined in Melch.")
 __attributes__(a::Symbol) = __attributes__(Val{a}())
 
 struct Attribute{N,T} <: Chakra.Attribute{N,T}
-    Attribute(a::Symbol) = new{a,__attribtues__(a)}()
+    Attribute(a::Symbol) = new{a,__attributes__(a)}()
 end
 
 __attributes__(::Val{:ONSET}) = Int
@@ -295,6 +296,8 @@ Chakra.pts(e::Event) = Id[]
 Chakra.geta(::Attribute{a,T},d::Dataset) where {a,T} = none
 Chakra.geta(::Attribute{a,T},m::Melody) where {a,T} = none
 Chakra.geta(::Attribute{a,T},e::Event) where {a,T} = Base.getproperty(e,a)
+
+Chakra.geta(a::Symbol,c::Constituent) = Chakra.geta(Attribute(a),c)
 
 Chakra.fnd(x::DatasetId,c::Corpus) = Base.get(c.datasets,x.dataset,none)
 Chakra.fnd(x::MelodyId,c::Corpus) = obind(fnd(id(x.dataset),c), d -> Base.get(d.melodies,x.melody,none))

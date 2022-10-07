@@ -13,7 +13,7 @@ uuid = "56f22d72-fd6d-98f1-02f0-08ddc0907c33"
 uuid = "2a0f44e3-6c83-55bd-87e4-b1978d98bd5f"
 
 [[deps.Chakra]]
-git-tree-sha1 = "170db71d3d5f71f5bc5584e978d5c14e38eef089"
+git-tree-sha1 = "b1c4a84b9051465bfc298ae280330d1ccd2ee9da"
 repo-rev = "main"
 repo-url = "https://github.com/nick-harley/Chakra.git"
 uuid = "23337c43-347c-4169-b193-f31a84c326bf"
