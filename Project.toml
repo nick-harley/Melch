@@ -5,6 +5,7 @@ version = "0.1.0"
 
 [deps]
 Chakra = "23337c43-347c-4169-b193-f31a84c326bf"
+Charm = "e2273620-1c64-487a-88f9-b29e28f5a7be"
 DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
 DataStructures = "864edb3b-99cc-5e75-8d2d-829cb0a9cfe8"
 JLD2 = "033835bb-8acc-5ee8-8aae-3f567f8a3819"
