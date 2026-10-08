@@ -148,8 +148,24 @@ __attributes__(::Val{:DYN}) = Int
 Chakra.__attributes__(::Val{Symbol("Melch.CPITCH")}) = Attribute(:CPITCH)
 Chakra.__attributes__(::Val{Symbol("Melch.DUR")}) = Attribute(:DUR)
 
-CPITCH = Attribute(:CPITCH)
+ONSET = Attribute(:ONSET)
+DELTAST = Attribute(:DELTAST)
+BIOI = Attribute(:BIOI)
 DUR = Attribute(:DUR)
+CPITCH = Attribute(:CPITCH)
+MPITCH = Attribute(:MPITCH)
+ACCIDENTAL = Attribute(:ACCIDENTAL)
+KEYSIG = Attribute(:KEYSIG)
+MODE = Attribute(:MODE)
+BARLENGTH = Attribute(:BARLENGTH)
+PULSES = Attribute(:PULSES)
+PHRASE = Attribute(:PHRASE)
+VOICE = Attribute(:VOICE)
+ORNAMENT = Attribute(:ORNAMENT)
+COMMA = Attribute(:COMMA)
+VERTINT12 = Attribute(:VERTINT12)
+ARTICULATION = Attribute(:ARTICULATION)
+DYN = Attribute(:DYN)
 
 ####################
 # CHAKRA INTERFACE #
