@@ -20,19 +20,25 @@ abstract type Hierarchy <: Chakra.Hierarchy end
 
 # The concrete types for Identifiers
 
-# Identifiers for the different datasets
 struct DatasetId <: Id
+
+    # TYPE OF DATASET IDENTIFIERS
+    
     dataset::Int
 end
 
-# Identifiers for each melody
 struct MelodyId <: Id
+
+    # TYPE OF MELODY IDENTIFIERS
+    
     dataset::Int
     melody::Int
 end
 
-# Identifiers for events (notes)
 struct EventId <: Id
+
+    # TYPE OF EVENT (NOTE) IDENTIFIERS
+    
     dataset::Int
     melody::Int
     event::Int
@@ -51,10 +57,11 @@ idtostring(e::EventId) = string(e.dataset,"/",e.melody,"/",e.event)
 idtostring(e::MelodyId) = string(e.dataset,"/",e.melody)
 idtostring(e::DatasetId) = string(e.dataset)
 
-# the type of event (note) constituents
+# CONCRETE TYPES FOR CONSTITUENTS
+
 mutable struct Event <: Constituent
 
-    # TYPE OF MUSICAL EVENTS
+    # TYPE OF MUSICAL EVENTS (NOTES)
 
     id::EventId
     ONSET::Option{Int}
@@ -80,7 +87,6 @@ end
 
 # helper function for creating "empty" events 
 # (none is chakra constant for a missing value)
-
 Event(x) = Event(x,none,none,none,none,none,none,none,none,none,
                  none,none,none,none,none,none,none,none,none)
 
@@ -106,9 +112,7 @@ end
 
 Dataset(x,desc) = Dataset(x,Melody[],desc)
 
-###############
-# HIERARCHIES #
-###############
+# CONCRETE TYPE FOR CHAKRA HIERARCHIES
 
 struct Corpus <: Hierarchy
 
@@ -118,18 +122,17 @@ struct Corpus <: Hierarchy
     description::String
 end
 
+# Helper function for creating empty corpus
 Corpus(desc) = Corpus(Dataset[],desc)
 
 
+# MELCH ATTRIBUTES
 
-
+# This defines a mapping from symbols (attribute names) to types. 
 __attributes__(::Val{a}) where a = error("Attribtue $a is not defined in Melch.")
 __attributes__(a::Symbol) = __attributes__(Val{a}())
 
-struct Attribute{N,T} <: Chakra.Attribute{N,T}
-    Attribute(a::Symbol) = new{a,__attributes__(a)}()
-end
-
+# Map each symbol to the type of its values. 
 __attributes__(::Val{:ONSET}) = Int
 __attributes__(::Val{:DELTAST}) = Int
 __attributes__(::Val{:BIOI}) = Int
@@ -149,9 +152,18 @@ __attributes__(::Val{:VERTINT12}) = Int
 __attributes__(::Val{:ARTICULATION}) = Int
 __attributes__(::Val{:DYN}) = Int
 
+struct Attribute{N,T} <: Chakra.Attribute{N,T}
+
+    # CONCRETE TYPE OF ATTRIBUTE NAMES
+    
+    Attribute(a::Symbol) = new{a,__attributes__(a)}()
+end
+
+# These lines make Melch Attributes destructions available outside of Melch. 
 Chakra.__attributes__(::Val{Symbol("Melch.CPITCH")}) = Attribute(:CPITCH)
 Chakra.__attributes__(::Val{Symbol("Melch.DUR")}) = Attribute(:DUR)
 
+# These lines define constants for each attribute name. 
 ONSET = Attribute(:ONSET)
 DELTAST = Attribute(:DELTAST)
 BIOI = Attribute(:BIOI)
@@ -175,28 +187,29 @@ DYN = Attribute(:DYN)
 # CHAKRA INTERFACE #
 ####################
 
+# These functions from Chakra must be overloaded for client applications (such as Idyoms) to work. 
+
+# pts must be defined for each concrete constituent type 
 Chakra.pts(d::Dataset) = [id(d.id,i) for i in 1:length(d.melodies)]
 Chakra.pts(m::Melody) = [id(m.id,i) for i in 1:length(m.events)]
 Chakra.pts(e::Event) = Id[]
 
+# geta (get attribute) must be defined for each attribute and each constituent type
 Chakra.geta(::Attribute{a,T},d::Dataset) where {a,T} = none
 Chakra.geta(::Attribute{a,T},m::Melody) where {a,T} = none
 Chakra.geta(::Attribute{a,T},e::Event) where {a,T} = Base.getproperty(e,a)
 
+# fnd must be defined for each identifier type and each hierarchy type
 Chakra.fnd(x::DatasetId,c::Corpus) = Base.get(c.datasets,x.dataset+1,none)
 Chakra.fnd(x::MelodyId,c::Corpus) = obind(fnd(id(x.dataset),c), d -> Base.get(d.melodies,x.melody,none))
 Chakra.fnd(x::EventId,c::Corpus) = obind(fnd(id(x.dataset,x.melody),c), m -> Base.get(m.events,x.event,none))
 
 
-
-
-
-
-# LOADING
+# LOADING THE CONCRETE MELCH DATA
 
 function parse_file(x,filepath)
 
-    # PARSE LISP FILE TO DATASET
+    # PARSE A LISP FILE TO A DATASET CONSTITUENT
     
     f = open(filepath)
     s = read(f,String)
@@ -253,12 +266,14 @@ function parse_file(x,filepath)
 
 end
 
-
+# The __data__ constant must be set to a Chakra.Hierarchy containing the knowledge 
+# Here, we set it to an empty corpus hierarchy (called Melch). The __INIT__ function below will populate this hierarchy. 
 __data__ = Corpus("Melch")
 
 function __INIT__(path)
 
-    # PARSE ALL THE LISP FILES TO A CORPUS
+    # TAKES PATH TO CONCRETE DATA AS ARGUMENT
+    # PARSES ALL THE LISP FILES AND ADDS EACH DATA SET TO THE __data__ HIERARCHY
 
     # NOTE: 21.lisp doesn't parse. is there a missing bracket somewhere? also han0953 has not events. 
 
@@ -273,6 +288,7 @@ end
 
 
 # DISPLAY USING DATAFRAMES
+# These are just helpful functions that allow you to tabulate the data
 
 function event_to_df(e::Event)
 
