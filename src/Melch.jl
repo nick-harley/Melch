@@ -183,8 +183,6 @@ Chakra.geta(::Attribute{a,T},d::Dataset) where {a,T} = none
 Chakra.geta(::Attribute{a,T},m::Melody) where {a,T} = none
 Chakra.geta(::Attribute{a,T},e::Event) where {a,T} = Base.getproperty(e,a)
 
-Chakra.geta(a::Symbol,c::Constituent) = Chakra.geta(Attribute(a),c)
-
 Chakra.fnd(x::DatasetId,c::Corpus) = Base.get(c.datasets,x.dataset+1,none)
 Chakra.fnd(x::MelodyId,c::Corpus) = obind(fnd(id(x.dataset),c), d -> Base.get(d.melodies,x.melody,none))
 Chakra.fnd(x::EventId,c::Corpus) = obind(fnd(id(x.dataset,x.melody),c), m -> Base.get(m.events,x.event,none))
