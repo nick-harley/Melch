@@ -6,9 +6,10 @@ using Chakra
 
 export id
 
-################
-# CONSTITUENTS #
-################
+# Abstract types
+# Identifiers are the names of constituents 
+# Constituents are data structures which contain information
+# Hierarchy is the type of CHAKRA knowledge structures
 
 abstract type Id <: Chakra.Id end
 
@@ -17,25 +18,27 @@ abstract type Constituent <: Chakra.Constituent end
 abstract type Hierarchy <: Chakra.Hierarchy end
 
 
-###############
-# IDENTIFIERS #
-###############
+# The concrete types for Identifiers
 
+# Identifiers for the different datasets
 struct DatasetId <: Id
     dataset::Int
 end
 
+# Identifiers for each melody
 struct MelodyId <: Id
     dataset::Int
     melody::Int
 end
 
+# Identifiers for events (notes)
 struct EventId <: Id
     dataset::Int
     melody::Int
     event::Int
 end
 
+# helper function for constructing identifiers
 id(d::Int) = DatasetId(d)
 id(d::Int,m::Int) = MelodyId(d,m)
 id(d::Int,m::Int,e::Int) = EventId(d,m,e)
@@ -43,14 +46,12 @@ id(d::DatasetId,i::Int) = id(d.dataset,i)
 id(m::MelodyId,i::Int) = id(m.dataset,m.melody,i)
 id(d::DatasetId,m::Int,i::Int) = id(d.dataset,m,i)
 
+# helper function to write ids to strings
 idtostring(e::EventId) = string(e.dataset,"/",e.melody,"/",e.event)
 idtostring(e::MelodyId) = string(e.dataset,"/",e.melody)
 idtostring(e::DatasetId) = string(e.dataset)
 
-
-
-
-
+# the type of event (note) constituents
 mutable struct Event <: Constituent
 
     # TYPE OF MUSICAL EVENTS
@@ -76,6 +77,9 @@ mutable struct Event <: Constituent
     DYN::Option{Int}
 
 end
+
+# helper function for creating "empty" events 
+# (none is chakra constant for a missing value)
 
 Event(x) = Event(x,none,none,none,none,none,none,none,none,none,
                  none,none,none,none,none,none,none,none,none)
